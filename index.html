@@ -78,8 +78,17 @@
         if (event.code === "Space" && !isGameStarted) isGameStarted = true;
         if ((event.code === "Space") && isGameOver) resetGame(true);
         if (event.code === "Enter" && isGameOver) resetGame(false);
-        if (event.code === "Space" && isGameStarted && !isGameOver) {
-        isPaused = !isPaused;
+        if (event.code === "Space") {
+            if (!isGameStarted) {
+                isGameStarted = true; // Bắt đầu game lần đầu
+            } 
+            else if (isGameOver) {
+                resetGame(true); // Chơi lại khi đã thua
+            } 
+            else {
+                // [MỚI] Nếu đang trong trận đấu thì đảo ngược trạng thái tạm dừng
+                isPaused = !isPaused; 
+            }
         }
     });
 
@@ -101,7 +110,7 @@
     function update() {
         // (MỚI) Nếu game chưa bắt đầu hoặc đã thua, dừng tính toán vật lý
         // Chim sẽ đứng yên, ống không chạy
-        if (!isGameStarted || isGameOver) {
+        if (!isGameStarted || isGameOver || isPaused) {
             return; 
         }
         
@@ -306,6 +315,18 @@
         ctx.fillStyle = "white";
         ctx.font = "20px Arial";
         ctx.fillText("Score: " + score, 10, 30);
+        
+        // Vẽ thời gian
+        ctx.textAlign = "start";
+        ctx.fillStyle = "white";
+        ctx.font = "bold 20px Arial";
+        ctx.fillText("Time: " + score + "s", 10, 50);
+
+        // [MỚI] Vẽ dòng chữ hướng dẫn tạm dừng ngay dưới Score
+        if (!isGameOver && isGameStarted && !isPaused) {
+            ctx.font = "italic 14px Arial";
+            ctx.fillText("Nhấn SPACE để tạm dừng", 10, 70); 
+        }
 
         // (MỚI) Vẽ màn hình Chờ bắt đầu
         if (!isGameStarted) {
@@ -315,6 +336,20 @@
             ctx.fillStyle = "white";
             ctx.font = "20px Arial";
             ctx.fillText("Nhấn SPACE để bắt đầu", 55, 240);
+        }
+
+        // [MỚI] Màn hình Tạm dừng
+        if (isPaused && !isGameOver) {
+            ctx.fillStyle = "rgba(0, 0, 0, 0.4)"; // Lớp phủ mờ nhẹ
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.textAlign = "center";
+            ctx.fillStyle = "white";
+            ctx.font = "bold 30px Arial";
+            ctx.fillText("ĐÃ TẠM DỪNG", canvas.width / 2, canvas.height / 2 - 20);
+            
+            ctx.font = "20px Arial";
+            ctx.fillText("Nhấn SPACE để chơi tiếp", canvas.width / 2, canvas.height / 2 + 30);
         }
 
         // Vẽ màn hình Game Over
