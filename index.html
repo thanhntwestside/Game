@@ -21,6 +21,14 @@
 <body>
 
 <canvas id="gameCanvas" width="550" height="330"></canvas>
+<div id="controls" style="position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: grid; grid-template-columns: repeat(3, 50px); gap: 10px;">
+    <div></div>
+    <button onmousedown="keys['ArrowUp']=true" onmouseup="keys['ArrowUp']=false" style="width:50px; height:50px;">UP</button>
+    <div></div>
+    <button onmousedown="keys['ArrowLeft']=true" onmouseup="keys['ArrowLeft']=false" style="width:50px; height:50px;">L</button>
+    <button onmousedown="keys['ArrowDown']=true" onmouseup="keys['ArrowDown']=false" style="width:50px; height:50px;">DN</button>
+    <button onmousedown="keys['ArrowRight']=true" onmouseup="keys['ArrowRight']=false" style="width:50px; height:50px;">R</button>
+</div>
 
 <script>
     // 1. LẤY CÔNG CỤ VẼ
