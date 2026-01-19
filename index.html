@@ -16,12 +16,7 @@
             border: 2px solid #fff;
             background-color: #70c5ce;
         }
-        canvas {
-              touch-action: none;
-        }
-
     </style>
-    <link rel="manifest" href="manifest.json">
 </head>
 <body>
 
@@ -113,34 +108,6 @@
     requestAnimationFrame(gameLoop);
     }
     
-    canvas.addEventListener("touchstart", function (e) {
-    e.preventDefault();
-
-    if (!isGameStarted) {
-        isGameStarted = true;
-        return;
-    }
-
-    if (isGameOver) {
-        resetGame(true);
-        return;
-    }
-
-    const touchY = e.touches[0].clientY;
-    const canvasRect = canvas.getBoundingClientRect();
-    const y = touchY - canvasRect.top;
-
-    if (y < canvas.height / 2) {
-        // Tap nửa trên → bay lên
-        birdY -= moveSpeed;
-        velocity = -5;
-    } else {
-        // Tap nửa dưới → bay xuống
-        birdY += moveSpeed;
-        velocity = 5;
-    }
-    }, { passive: false });
-
     // 5. HÀM TÍNH TOÁN (LOGIC)
     function update() {
         // (MỚI) Nếu game chưa bắt đầu hoặc đã thua, dừng tính toán vật lý
