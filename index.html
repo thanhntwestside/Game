@@ -54,7 +54,7 @@
     let nextPipeDistance = Math.floor(Math.random() * 71) + 150;
 
     // -- Biến điều khiển di chuyển tự do --
-    let moveSpeed = 4; // Tốc độ bay của bướm
+    let moveSpeed = 6; // Tốc độ bay của bướm
     let keys = {};     // Cuốn sổ tay ghi nhớ phím nào đang được giữ
 
     // -- Điểm số --
@@ -152,7 +152,7 @@
         // 2. Bay xuống (Tăng Y)
         if (keys["ArrowDown"]) {
             birdY += moveSpeed;
-            velocity = -5; // Gán số dương để cánh khép lại
+            velocity = -5; 
         }
 
         // 3. Bay sang trái (Giảm X)
