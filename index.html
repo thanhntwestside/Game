@@ -50,7 +50,7 @@
     let pipes = [];
     let pipeWidth = 40;
     let pipeGap = 70;
-    let pipeSpeed = 1;
+    let pipeSpeed = 1.5;
     let nextPipeDistance = Math.floor(Math.random() * 71) + 150;
 
     // -- Biến điều khiển di chuyển tự do --
@@ -62,6 +62,8 @@
     let score = 0;
     // [THÊM DÒNG NÀY] Lấy kỷ lục từ bộ nhớ. Nếu chưa có thì mặc định là 0.
     let bestScore = localStorage.getItem("myFlappy_BestScore") || 0;
+    let frame = 0;
+    let realTime = 0; // khai báo thời gian thực
 
     // 3. XỬ LÝ ĐIỀU KHIỂN (INPUT) - CƠ CHẾ MỚI
     
@@ -75,21 +77,21 @@
         }
 
         // Logic bắt đầu/chơi lại giữ nguyên (Dùng phím Space hoặc Enter)
-        if (event.code === "Space" && !isGameStarted) isGameStarted = true;
-        if ((event.code === "Space") && isGameOver) resetGame(true);
-        if (event.code === "Enter" && isGameOver) resetGame(false);
         if (event.code === "Space") {
             if (!isGameStarted) {
-                isGameStarted = true; // Bắt đầu game lần đầu
+                // Nếu chưa bắt đầu -> Bắt đầu chơi
+                isGameStarted = true;
             } 
             else if (isGameOver) {
-                resetGame(true); // Chơi lại khi đã thua
+                // Nếu đã thua -> Chơi lại
+                resetGame(true);
             } 
             else {
-                // [MỚI] Nếu đang trong trận đấu thì đảo ngược trạng thái tạm dừng
-                isPaused = !isPaused; 
+                // Nếu đang chơi -> Bật/Tắt tạm dừng
+                isPaused = !isPaused;
             }
         }
+        if (event.code === "Enter" && isGameOver) resetGame(false);
     });
 
     // Khi nhả phím ra -> Đánh dấu là FALSE (Hết giữ)
@@ -113,6 +115,14 @@
         if (!isGameStarted || isGameOver || isPaused) {
             return; 
         }
+        if (!isGameStarted || isGameOver || isPaused) return; 
+
+    frame++; // Tăng biến đếm mỗi khung hình
+
+    // CỨ MỖI 60 KHUNG HÌNH THÌ TĂNG 1 GIÂY THỰC
+    if (frame % 60 === 0) {
+        realTime++;
+    }
         
         // --- Xử lý Cảnh vật (Mây & Cây) ---
         // 1. Mây bay chậm (Tốc độ 0.5)
@@ -204,7 +214,7 @@
                 // [MỚI] KIỂM TRA TĂNG TỐC ĐỘ
                 // Nếu điểm chia hết cho 10 (10, 20, 30...)
                 if (score > 0 && score % 10 === 0) {
-                    pipeSpeed += 0.2; // Tăng tốc độ thêm 0.3 đơn vị
+                    pipeSpeed += 0.3; // Tăng tốc độ thêm 0.3 đơn vị
                     
                     // (Tùy chọn) In ra console để kiểm tra
                     console.log("Đã tăng tốc! Tốc độ hiện tại: " + pipeSpeed);
@@ -312,6 +322,7 @@
         }
 
         // Vẽ Điểm
+        ctx.textAlign = "start";
         ctx.fillStyle = "white";
         ctx.font = "20px Arial";
         ctx.fillText("Score: " + score, 10, 30);
@@ -320,7 +331,7 @@
         ctx.textAlign = "start";
         ctx.fillStyle = "white";
         ctx.font = "bold 20px Arial";
-        ctx.fillText("Time: " + score + "s", 10, 50);
+        ctx.fillText("Time: " + realTime + "s", 10, 50);
 
         // [MỚI] Vẽ dòng chữ hướng dẫn tạm dừng ngay dưới Score
         if (!isGameOver && isGameStarted && !isPaused) {
@@ -397,8 +408,10 @@
         velocity = 0;
         pipes = [];
         score = 0;
+        frame = 0;
+        realTime = 0;
         // [MỚI] Trả tốc độ về mặc định ban đầu
-        pipeSpeed = 1;
+        pipeSpeed = 1.5;
         isGameOver = false;
         
         // Nếu playNow là true -> Chơi luôn (isGameStarted = true)
