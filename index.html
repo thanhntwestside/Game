@@ -1,41 +1,76 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <title>Flappy Bird - test</title>
-    <style>
-        body {
-            background-color: #333;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-        }
+<meta charset="UTF-8">
+<title>Flappy Butterfly - Responsive</title>
+<style>
+    body {
+        background-color: #333;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;          /* Ngăn scroll bar */
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    canvas {
+        display: block;
+        background-color: #70c5ce;
+        border: 2px solid #fff;
+    }
+
+    /* Desktop: khung cố định, căn giữa */
+    @media (min-width: 769px) {
         canvas {
+            width: 530px;
+            height: 350px;
             border: 2px solid #fff;
-            background-color: #70c5ce;
         }
-    </style>
+    }
+
+    /* Mobile: full màn hình, không viền */
+    @media (max-width: 768px) {
+        canvas {
+            width: 100vw;
+            height: 100vh;
+            border: none;
+        }
+    }
+</style>
 </head>
 <body>
-
-<canvas id="gameCanvas" width="550" height="330"></canvas>
-<div id="controls" style="position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: grid; grid-template-columns: repeat(3, 50px); gap: 10px;">
-    <div></div>
-    <button onmousedown="keys['ArrowUp']=true" onmouseup="keys['ArrowUp']=false" style="width:50px; height:50px;">UP</button>
-    <div></div>
-    <button onmousedown="keys['ArrowLeft']=true" onmouseup="keys['ArrowLeft']=false" style="width:50px; height:50px;">L</button>
-    <button onmousedown="keys['ArrowDown']=true" onmouseup="keys['ArrowDown']=false" style="width:50px; height:50px;">DN</button>
-    <button onmousedown="keys['ArrowRight']=true" onmouseup="keys['ArrowRight']=false" style="width:50px; height:50px;">R</button>
-</div>
+<canvas id="gameCanvas"></canvas>
 
 <script>
-    // 1. LẤY CÔNG CỤ VẼ
-    const canvas = document.getElementById("gameCanvas");
-    const ctx = canvas.getContext("2d");
+// Lấy canvas
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
 
-    // 2. KHAI BÁO CÁC BIẾN
+// Hàm cập nhật kích thước pixel (resolution) của canvas
+function resizeCanvas() {
+    if (window.innerWidth > 768) {
+        // Desktop: độ phân giải cố định
+        canvas.width  = 530;
+        canvas.height = 350;
+    } else {
+        // Mobile: độ phân giải bằng viewport thực tế
+        canvas.width  = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+
+    // Ở đây bạn có thể điều chỉnh game logic nếu cần (ví dụ scale vị trí chim, ống theo kích thước mới)
+    // Ví dụ: birdX = canvas.width / 4;  // để chim luôn ở 1/4 màn hình bên trái
+}
+
+// Gọi lần đầu
+resizeCanvas();
+
+// Lắng nghe resize (rất quan trọng cho xoay màn hình)
+window.addEventListener('resize', resizeCanvas);
+
+// 2. KHAI BÁO CÁC BIẾN
     
     // -- Trạng thái Game (MỚI) --
     let isGameStarted = false; // Mặc định là chưa bắt đầu
@@ -65,7 +100,6 @@
     let moveSpeed = 4; // Tốc độ bay của bướm
     let keys = {};     // Cuốn sổ tay ghi nhớ phím nào đang được giữ
 
-    // -- Điểm số --
     // -- Điểm số --
     let score = 0;
     // [THÊM DÒNG NÀY] Lấy kỷ lục từ bộ nhớ. Nếu chưa có thì mặc định là 0.
