@@ -1,76 +1,62 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-<meta charset="UTF-8">
-<title>Flappy Butterfly - Responsive</title>
-<style>
-    body {
-        background-color: #333;
-        margin: 0;
-        padding: 0;
-        overflow: hidden;          /* Ngăn scroll bar */
-        height: 100vh;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-    }
-
-    canvas {
-        display: block;
-        background-color: #70c5ce;
-        border: 2px solid #fff;
-    }
-
-    /* Desktop: khung cố định, căn giữa */
-    @media (min-width: 769px) {
-        canvas {
-            width: 530px;
-            height: 350px;
-            border: 2px solid #fff;
-        }
-    }
-
-    /* Mobile: full màn hình, không viền */
-    @media (max-width: 768px) {
-        canvas {
-            width: 100vw;
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>Flappy Bird - test</title>
+    <style>
+        body {
+            background-color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
             height: 100vh;
-            border: none;
+            margin: 0;
         }
+        /* Mặc định cho máy tính */
+    canvas {
+    display: block;
+    margin: 0 auto; /* Căn giữa màn hình */
+    background-color: #70c5ce;
+    border: 2px solid #fff;
+    
+    /* Cố định kích thước trên trình duyệt máy tính */
+    width: 530px;
+    height: 350px;
     }
-</style>
+
+    /* KHI MỞ TRÊN ĐIỆN THOẠI (Màn hình nhỏ hơn 768px) */
+    @media (max-width: 768px) {
+    canvas {
+        width: 100vw;
+        height: 100vh;
+        border: none; /* Bỏ viền để nhìn cho tràn viền */
+    }
+    }
+    </style>
 </head>
 <body>
 <canvas id="gameCanvas"></canvas>
 
 <script>
-// Lấy canvas
-const canvas = document.getElementById("gameCanvas");
-const ctx = canvas.getContext("2d");
+    // 1. LẤY CÔNG CỤ VẼ
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
 
-// Hàm cập nhật kích thước pixel (resolution) của canvas
-function resizeCanvas() {
-    if (window.innerWidth > 768) {
-        // Desktop: độ phân giải cố định
-        canvas.width  = 530;
-        canvas.height = 350;
-    } else {
-        // Mobile: độ phân giải bằng viewport thực tế
-        canvas.width  = window.innerWidth;
-        canvas.height = window.innerHeight;
-    }
-
-    // Ở đây bạn có thể điều chỉnh game logic nếu cần (ví dụ scale vị trí chim, ống theo kích thước mới)
-    // Ví dụ: birdX = canvas.width / 4;  // để chim luôn ở 1/4 màn hình bên trái
+    // KIỂM TRA THIẾT BỊ
+if (window.innerWidth > 768) {
+    // Nếu là máy tính: Đặt độ phân giải cố định
+    canvas.width = 530;
+    canvas.height = 350;
+} else {
+    // Nếu là điện thoại: Đặt độ phân giải theo màn hình thực tế
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
 }
 
-// Gọi lần đầu
-resizeCanvas();
-
-// Lắng nghe resize (rất quan trọng cho xoay màn hình)
-window.addEventListener('resize', resizeCanvas);
-
-// 2. KHAI BÁO CÁC BIẾN
+    // 2. KHAI BÁO CÁC BIẾN
     
     // -- Trạng thái Game (MỚI) --
     let isGameStarted = false; // Mặc định là chưa bắt đầu
