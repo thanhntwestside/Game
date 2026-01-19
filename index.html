@@ -17,6 +17,7 @@
             background-color: #70c5ce;
         }
     </style>
+    <link rel="manifest" href="manifest.json">
 </head>
 <body>
 
@@ -54,7 +55,7 @@
     let nextPipeDistance = Math.floor(Math.random() * 71) + 150;
 
     // -- Biến điều khiển di chuyển tự do --
-    let moveSpeed = 6; // Tốc độ bay của bướm
+    let moveSpeed = 4; // Tốc độ bay của bướm
     let keys = {};     // Cuốn sổ tay ghi nhớ phím nào đang được giữ
 
     // -- Điểm số --
@@ -107,6 +108,34 @@
     draw();
     requestAnimationFrame(gameLoop);
     }
+    
+    canvas.addEventListener("touchstart", function (e) {
+    e.preventDefault();
+
+    if (!isGameStarted) {
+        isGameStarted = true;
+        return;
+    }
+
+    if (isGameOver) {
+        resetGame(true);
+        return;
+    }
+
+    const touchY = e.touches[0].clientY;
+    const canvasRect = canvas.getBoundingClientRect();
+    const y = touchY - canvasRect.top;
+
+    if (y < canvas.height / 2) {
+        // Tap nửa trên → bay lên
+        birdY -= moveSpeed;
+        velocity = -5;
+    } else {
+        // Tap nửa dưới → bay xuống
+        birdY += moveSpeed;
+        velocity = 5;
+    }
+    }, { passive: false });
 
     // 5. HÀM TÍNH TOÁN (LOGIC)
     function update() {
@@ -152,7 +181,7 @@
         // 2. Bay xuống (Tăng Y)
         if (keys["ArrowDown"]) {
             birdY += moveSpeed;
-            velocity = -5; 
+            velocity = -5; // Gán số dương để cánh khép lại
         }
 
         // 3. Bay sang trái (Giảm X)
