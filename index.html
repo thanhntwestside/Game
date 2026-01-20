@@ -3,9 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="mobile-web-app-capable" content="yes">
-    <title>Flappy Bird - test</title>
+    <title>Flappy Bird Mobile</title>
     <style>
         body {
             background-color: #333;
@@ -15,495 +13,270 @@
             height: 100vh;
             margin: 0;
             overflow: hidden;
+            font-family: Arial, sans-serif;
+            touch-action: none; /* Ngăn chặn các thao tác mặc định của trình duyệt như cuộn/zoom */
         }
-        /* Mặc định cho máy tính */
-    canvas {
-    display: block;
-    margin: 0 auto; /* Căn giữa màn hình */
-    background-color: #70c5ce;
-    border: 2px solid #fff;
-    
-    /* Cố định kích thước trên trình duyệt máy tính */
-    width: 530px;
-    height: 300px;
-    }
-
-    /* KHI MỞ TRÊN ĐIỆN THOẠI (Màn hình nhỏ hơn 768px) */
-    @media (max-width: 768px) {
-    canvas {
-        width: 100vw;
-        height: 100vh;
-        border: none; /* Bỏ viền để nhìn cho tràn viền */
-    }
-    /* Hiện thông báo nếu người dùng để điện thoại đứng */
-    @media (max-width: 768px) and (orientation: portrait) {
-        body::after {
-        content: "Vui lòng xoay ngang điện thoại để chơi game!";
-        position: fixed;
-        top: 0; left: 0; width: 100%; height: 100%;
-        background: #333; color: white;
-        display: flex; align-items: center; justify-content: center;
-        z-index: 9999;
+        canvas {
+            display: block;
+            background-color: #70c5ce;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
         }
-    }
-    }
-    #pauseBtn {
-    position: fixed;
-    top: 10px;
-    right: 10px;
-    width: 40px;
-    height: 40px;
-    background: rgba(255, 255, 255, 0.5);
-    border: 2px solid #fff;
-    border-radius: 5px;
-    font-weight: bold;
-    display: none; /* Mặc định ẩn */
-    z-index: 100;
-    }
 
-    /* Chỉ hiển thị nút P khi ở màn hình điện thoại */
-    @media (max-width: 768px) {
+        /* Giao diện nút bấm */
+        #ui-layer {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; justify-content: center; align-items: center;
+            pointer-events: none; /* Để không chặn các click vào canvas nếu cần */
+        }
+        #startBtn {
+            padding: 15px 40px;
+            font-size: 24px;
+            background: #FFD700;
+            border: none;
+            border-radius: 10px;
+            color: #333;
+            font-weight: bold;
+            cursor: pointer;
+            pointer-events: auto;
+            display: block;
+            box-shadow: 0 5px #b89b00;
+        }
+        #startBtn:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px #b89b00;
+        }
         #pauseBtn {
-        display: block;
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.5);
+            border: 2px solid #fff;
+            border-radius: 50%;
+            font-weight: bold;
+            display: none;
+            z-index: 100;
+            pointer-events: auto;
         }
-    }
     </style>
 </head>
 <body>
-<canvas id="gameCanvas"></canvas>
+
+<div id="ui-layer">
+    <button id="startBtn">START GAME</button>
+</div>
 <button id="pauseBtn" onclick="togglePause()">P</button>
+<canvas id="gameCanvas"></canvas>
+
 <script>
-    // 1. LẤY CÔNG CỤ VẼ
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
+    const startBtn = document.getElementById("startBtn");
+    const pauseBtn = document.getElementById("pauseBtn");
 
-    // KIỂM TRA THIẾT BỊ
-if (window.innerWidth > 768) {
-    // Nếu là máy tính: Đặt độ phân giải cố định
-    canvas.width = 530;
-    canvas.height = 350;
-} else {
-    // Nếu là điện thoại: Đặt độ phân giải theo màn hình thực tế
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-}
+    // 1. CÀI ĐẶT KÍCH THƯỚC (Responsive)
+    function setupCanvas() {
+        if (window.innerWidth > 768) {
+            canvas.width = 530;
+            canvas.height = 350;
+            pauseBtn.style.display = "none";
+        } else {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            pauseBtn.style.display = "block";
+            // Yêu cầu xoay ngang nếu là App/Trình duyệt hiện đại
+            if (screen.orientation && screen.orientation.lock) {
+                screen.orientation.lock('landscape').catch(() => {
+                    console.log("Cần thao tác người dùng để khóa xoay");
+                });
+            }
+        }
+    }
+    setupCanvas();
+    window.addEventListener('resize', setupCanvas);
 
-    // 2. KHAI BÁO CÁC BIẾN
-    
-    // -- Trạng thái Game (MỚI) --
-    let isGameStarted = false; // Mặc định là chưa bắt đầu
+    // 2. BIẾN GAME
+    let isGameStarted = false;
     let isGameOver = false;
     let isPaused = false;
-
-    // -- Cảnh vật nền --
-    let cloudX = 400;      // Vị trí mây bắt đầu
-    let cloudX2 = 200;
-    let bushX = 0;         // Vị trí bụi cây bắt đầu
-    let bushX2 = 300;
-
-    // -- Con bướm --
-    let birdX = 50;
-    let birdY = 150;
-    let birdSize = 20;
-    let velocity = 0;
-
-    // -- Ống nước --
-    let pipes = [];
-    let pipeWidth = 40;
-    let pipeGap = 70;
-    let pipeSpeed = 1.5;
-    let nextPipeDistance = Math.floor(Math.random() * 71) + 150;
-
-    // -- Biến điều khiển di chuyển tự do --
-    let moveSpeed = 4; // Tốc độ bay của bướm
-    let keys = {};     // Cuốn sổ tay ghi nhớ phím nào đang được giữ
-
-    // -- Điểm số --
     let score = 0;
-    // [THÊM DÒNG NÀY] Lấy kỷ lục từ bộ nhớ. Nếu chưa có thì mặc định là 0.
     let bestScore = localStorage.getItem("myFlappy_BestScore") || 0;
     let frame = 0;
-    let realTime = 0; // khai báo thời gian thực
+    let realTime = 0;
 
-    // 3. XỬ LÝ ĐIỀU KHIỂN (INPUT) - CƠ CHẾ MỚI
-    
-    // Khi ấn phím xuống -> Đánh dấu là TRUE (Đang giữ)
-    document.addEventListener("keydown", function(event) {
-        keys[event.code] = true;
-        
-        // Chặn cuộn trang nếu bấm mũi tên
-        if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight","Space"].indexOf(event.code) > -1) {
-            event.preventDefault();
-        }
+    let birdX = 50, birdY = 150, birdSize = 20, velocity = 0;
+    let pipes = [], pipeWidth = 50, pipeGap = 100, pipeSpeed = 2;
+    let cloudX = 400, bushX = 0;
+    let moveSpeed = 4;
+    let keys = {};
 
-        // Logic bắt đầu/chơi lại giữ nguyên (Dùng phím Space hoặc Enter)
-        if (event.code === "Space") {
-            if (!isGameStarted) {
-                // Nếu chưa bắt đầu -> Bắt đầu chơi
-                isGameStarted = true;
-            } 
-            else if (isGameOver) {
-                // Nếu đã thua -> Chơi lại
-                resetGame(true);
-            } 
-            else {
-                // Nếu đang chơi -> Bật/Tắt tạm dừng
-                isPaused = !isPaused;
-            }
-        }
-        if (event.code === "KeyP") {
-            togglePause();
-        }
-        if (event.code === "Enter" && isGameOver) resetGame(false);
+    // 3. ĐIỀU KHIỂN
+    // Trên máy tính
+    document.addEventListener("keydown", (e) => {
+        keys[e.code] = true;
+        if (e.code === "Space") handleMainAction();
     });
+    document.addEventListener("keyup", (e) => keys[e.code] = false);
 
-    // Khi nhả phím ra -> Đánh dấu là FALSE (Hết giữ)
-    document.addEventListener("keyup", function(event) {
-        keys[event.code] = false;
-    });
-    document.addEventListener('touchstart', function(e) {
-    // Lấy tọa độ chạm để xử lý swipe (giữ nguyên code cũ của bạn)
-    touchStartX = e.changedTouches[0].screenX;
-    touchStartY = e.changedTouches[0].screenY;
+    // Trên điện thoại (Cảm ứng chia vùng)
+    canvas.addEventListener("touchstart", (e) => {
+        e.preventDefault();
+        if (!isGameStarted || isGameOver) return;
 
-    // LOGIC MỚI:
-    if (!isGameStarted) {
-        isGameStarted = true; // Chạm lần đầu để vào game
-    } else if (isGameOver) {
-        resetGame(true);      // Chạm khi thua để chơi lại
-    } else if (isPaused) {
-        isPaused = false;     // Chạm khi đang tạm dừng để chơi tiếp
-    }
+        const touch = e.touches[0];
+        const rect = canvas.getBoundingClientRect();
+        const tx = touch.clientX - rect.left;
+        const ty = touch.clientY - rect.top;
+
+        // Reset các phím ảo
+        keys["ArrowUp"] = ty < canvas.height / 3;
+        keys["ArrowDown"] = ty > (canvas.height * 2) / 3;
+        keys["ArrowLeft"] = tx < canvas.width / 3;
+        keys["ArrowRight"] = tx > (canvas.width * 2) / 3;
     }, {passive: false});
 
-    // 4. VÒNG LẶP GAME
-    function gameLoop() {
-    if (!isPaused) { // Mới: Dừng update nếu pause
-        update();
+    canvas.addEventListener("touchend", () => {
+        keys["ArrowUp"] = false;
+        keys["ArrowDown"] = false;
+        keys["ArrowLeft"] = false;
+        keys["ArrowRight"] = false;
+    });
+
+    startBtn.onclick = () => {
+        handleMainAction();
+        startBtn.style.display = "none";
+    };
+
+    function handleMainAction() {
+        if (!isGameStarted) {
+            isGameStarted = true;
+            startBtn.style.display = "none";
+        } else if (isGameOver) {
+            resetGame(true);
+        }
     }
-    draw();
-    requestAnimationFrame(gameLoop);
-    }
+
     function togglePause() {
-    if (isGameStarted && !isGameOver) {
-        isPaused = !isPaused;
-    }
+        if (isGameStarted && !isGameOver) isPaused = !isPaused;
     }
 
-    // 5. HÀM TÍNH TOÁN (LOGIC)
+    // 4. LOGIC CẬP NHẬT
     function update() {
-        // (MỚI) Nếu game chưa bắt đầu hoặc đã thua, dừng tính toán vật lý
-        // Chim sẽ đứng yên, ống không chạy
-        if (!isGameStarted || isGameOver || isPaused) {
-            return; 
-        }
-        
-    frame++; // Tăng biến đếm mỗi khung hình
+        if (!isGameStarted || isGameOver || isPaused) return;
 
-    // CỨ MỖI 60 KHUNG HÌNH THÌ TĂNG 1 GIÂY THỰC
-    if (frame % 60 === 0) {
-        realTime++;
-    }
-            
-        // --- Xử lý Cảnh vật (Mây & Cây) ---
-        // 1. Mây bay chậm (Tốc độ 0.5)
-        cloudX -= 0.5; 
-        if (cloudX < -100) { // Nếu mây trôi hết màn hình bên trái
-            cloudX = canvas.width; // Đưa nó về lại bên phải
-        }
+        frame++;
+        if (frame % 60 === 0) realTime++;
 
-        // 2. Bụi cây di chuyển cùng tốc độ với Ống (Tốc độ 1.5)
-        bushX -= pipeSpeed;
-        if (bushX < -50) { // Nếu bụi cây trôi hết
-            bushX = canvas.width;
-        }
+        // Di chuyển nền
+        cloudX -= 0.5; if (cloudX < -100) cloudX = canvas.width;
+        bushX -= pipeSpeed; if (bushX < -100) bushX = canvas.width;
 
-        // --- Logic Di Chuyển Bướm (4 Chiều) ---
-        // Lưu ý: Ta không dùng gravity nữa.
-        
-        // Reset vận tốc ảo (để dùng cho hiệu ứng vỗ cánh)
-        velocity = 0; 
+        // Di chuyển bướm
+        velocity = 0;
+        if (keys["ArrowUp"]) { birdY -= moveSpeed; velocity = -5; }
+        if (keys["ArrowDown"]) { birdY += moveSpeed; velocity = 5; }
+        if (keys["ArrowLeft"]) birdX -= moveSpeed;
+        if (keys["ArrowRight"]) birdX += moveSpeed;
 
-        // 1. Bay lên (Giảm Y)
-        if (keys["ArrowUp"]) {
-            birdY -= moveSpeed;
-            velocity = -5; // Gán số âm để cánh mở ra (hiệu ứng hình ảnh)
-        }
-        
-        // 2. Bay xuống (Tăng Y)
-        if (keys["ArrowDown"]) {
-            birdY += moveSpeed;
-            velocity = -5; // Gán số dương để cánh khép lại
+        // Giới hạn biên
+        birdX = Math.max(0, Math.min(canvas.width - birdSize, birdX));
+        birdY = Math.max(0, Math.min(canvas.height - birdSize, birdY));
+
+        // Logic ống
+        if (pipes.length === 0 || pipes[pipes.length - 1].x < canvas.width - 200) {
+            let h = Math.random() * (canvas.height - pipeGap - 40) + 20;
+            pipes.push({x: canvas.width, y: h, passed: false});
         }
 
-        // 3. Bay sang trái (Giảm X)
-        if (keys["ArrowLeft"]) {
-            birdX -= moveSpeed;
-            velocity = -5;
-        }
-
-        // 4. Bay sang phải (Tăng X)
-        if (keys["ArrowRight"]) {
-            birdX += moveSpeed;
-            velocity = -5;
-        }
-
-        // --- Giới hạn khung hình (Không cho bay ra ngoài) ---
-        // Không cho bay quá mép trên
-        if (birdY < 0) birdY = 0;
-        // Không cho bay quá mép dưới
-        if (birdY + birdSize > canvas.height) birdY = canvas.height - birdSize;
-        // Không cho bay quá mép trái
-        if (birdX < 0) birdX = 0;
-        // Không cho bay quá mép phải
-        if (birdX + birdSize > canvas.width) birdX = canvas.width - birdSize;
-
-        // --- Logic Ống ---
-        // (MỚI - SỬA THÀNH ĐOẠN NÀY)
-        // Thay số 150 cố định bằng biến 'nextPipeDistance'
-        if (pipes.length === 0 || pipes[pipes.length - 1].x < canvas.width - nextPipeDistance) {
-            
-            let pipeTopHeight = Math.floor(Math.random() * (canvas.height - pipeGap - 50)) + 20;
-            pipes.push({
-                x: canvas.width,
-                y: pipeTopHeight
-            });
-
-            // [THÊM ĐOẠN NÀY] Sau khi tạo xong ống hiện tại, ta tính luôn khoảng cách cho ống kế tiếp
-            // Công thức: Math.random() * (Max - Min + 1) + Min
-            // Khoảng từ 150 đến 220 => (220 - 150 + 1) = 71
-            nextPipeDistance = Math.floor(Math.random() * 71) + 150;
-            
-            // Mẹo debug: Bạn có thể bật dòng này để xem khoảng cách thay đổi trong Console (F12)
-            // console.log("Khoảng cách tiếp theo:", nextPipeDistance);
-        }
-
-        for (let i = 0; i < pipes.length; i++) {
-            let p = pipes[i];
+        pipes.forEach((p, i) => {
             p.x -= pipeSpeed;
-
+            // Va chạm
             if (birdX + birdSize > p.x && birdX < p.x + pipeWidth) {
-                if (birdY < p.y || birdY + birdSize > p.y + pipeGap) {
-                    isGameOver = true;
-                }
+                if (birdY < p.y || birdY + birdSize > p.y + pipeGap) isGameOver = true;
             }
-
-            if (p.x + pipeWidth < birdX && !p.passed) {
+            // Ăn điểm
+            if (!p.passed && p.x + pipeWidth < birdX) {
                 score++;
                 p.passed = true;
-
-                // [MỚI] KIỂM TRA TĂNG TỐC ĐỘ
-                // Nếu điểm chia hết cho 10 (10, 20, 30...)
-                if (score > 0 && score % 10 === 0) {
-                    pipeSpeed += 0.3; // Tăng tốc độ thêm 0.3 đơn vị
-                    
-                    // (Tùy chọn) In ra console để kiểm tra
-                    console.log("Đã tăng tốc! Tốc độ hiện tại: " + pipeSpeed);
-                }
+                if (score % 10 === 0) pipeSpeed += 0.2;
             }
-        }
+        });
+        if (pipes.length > 0 && pipes[0].x < -pipeWidth) pipes.shift();
 
-        if (pipes.length > 0 && pipes[0].x < -pipeWidth) {
-            pipes.shift();
-        }
-    }
-
-    // 6. HÀM VẼ (HIỂN THỊ)
-    function draw() {
-        // B1: Xóa màn hình & Vẽ nền trời trước tiên
-        ctx.fillStyle = "#70c5ce"; 
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        // --- BẮT ĐẦU VẼ CẢNH VẬT (Nằm sau lưng ống và chim) ---
-        
-        // 1. Vẽ Mặt trời (Hình tròn cam, đứng yên góc phải)
-        ctx.fillStyle = "#FFD700"; // Màu vàng cam
-        ctx.beginPath();
-        ctx.arc(450, 80, 40, 0, Math.PI * 2); // Vẽ hình tròn: x, y, bán kính
-        ctx.fill();
-
-        // 2. Vẽ Mây (Hình bầu dục trắng, di chuyển)
-        ctx.fillStyle = "rgba(255, 255, 255, 0.8)"; // Màu trắng hơi trong suốt
-        ctx.beginPath();
-        ctx.arc(cloudX, 100, 30, 0, Math.PI * 2); // Cục mây chính
-        ctx.arc(cloudX + 40, 110, 40, 0, Math.PI * 2); // Cục mây phụ dính vào
-        ctx.arc(cloudX - 30, 110, 30, 0, Math.PI * 2); // Cục mây phụ bên kia
-        ctx.fill();
-
-        // 3. Vẽ Bụi cây dưới đất (Màu xanh đậm hơn ống)
-        ctx.fillStyle = "#2E8B57"; // SeaGreen
-        // Vẽ 2 bụi cây liên tiếp để tạo cảm giác lặp lại
-        // Bụi 1
-        ctx.beginPath();
-        ctx.arc(bushX, canvas.height, 60, 0, Math.PI * 2); 
-        ctx.fill();
-        // Bụi 2 (cách bụi 1 một đoạn)
-        ctx.beginPath();
-        ctx.arc(bushX + 300, canvas.height, 80, 0, Math.PI * 2);
-        ctx.fill();
-
-        // --- KẾT THÚC VẼ CẢNH VẬT ---
-
-        // B2: Sau đó mới vẽ bướm, Ống, Điểm số đè lên trên
-        
-        // --- VẼ CHÚ BƯỚM SỐNG ĐỘNG (THAY CHO HÌNH VUÔNG) ---
-        
-        // 1. Tính toán trạng thái cánh (Mẹo tạo hiệu ứng vỗ)
-        // Nếu velocity < 0 (đang bay lên) -> cánh mở rộng (offset lớn)
-        // Nếu velocity > 0 (đang rơi) -> cánh khép lại (offset nhỏ)
-        let wingOffset = (velocity < 0) ? 14 : 6; 
-        
-        // Xác định tâm của con bướm (để vẽ đối xứng)
-        let centerX = birdX + birdSize / 2;
-        let centerY = birdY + birdSize / 2;
-
-        // 2. Vẽ cánh bướm (Dùng màu Hồng/Tím)
-        ctx.fillStyle = "#FF1493"; // Màu hồng đậm (DeepPink)
-        
-        // Cánh trên bên trái (Hình tròn lệch trái)
-        ctx.beginPath();
-        ctx.arc(centerX - wingOffset, centerY - 5, 10, 0, Math.PI * 2);
-        ctx.fill();
-        
-        // Cánh trên bên phải (Hình tròn lệch phải)
-        ctx.beginPath();
-        ctx.arc(centerX + wingOffset, centerY - 5, 10, 0, Math.PI * 2);
-        ctx.fill();
-        
-        // Cánh dưới nhỏ hơn (Màu nhạt hơn chút)
-        ctx.fillStyle = "#FF69B4"; // HotPink
-        // Cánh dưới trái
-        ctx.beginPath();
-        ctx.arc(centerX - wingOffset + 3, centerY + 8, 7, 0, Math.PI * 2);
-        ctx.fill();
-        // Cánh dưới phải
-        ctx.beginPath();
-        ctx.arc(centerX + wingOffset - 3, centerY + 8, 7, 0, Math.PI * 2);
-        ctx.fill();
-
-        // 3. Vẽ thân bướm (Màu tối ở giữa)
-        ctx.fillStyle = "#4B0082"; // Màu chàm (Indigo)
-        ctx.beginPath();
-        // Vẽ hình bầu dục (ellipse) làm thân: x, y, bán kính ngang, bán kính dọc, xoay...
-        ctx.ellipse(centerX, centerY, 4, 12, 0, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Mẹo debug: Uncomment dòng dưới để thấy "hộp va chạm" thực sự vẫn là hình vuông
-        // ctx.strokeStyle = "red"; ctx.strokeRect(birdX, birdY, birdSize, birdSize);
-        
-        // --- KẾT THÚC VẼ BƯỚM ---
-
-        // Vẽ Ống
-        ctx.fillStyle = "green";
-        for (let i = 0; i < pipes.length; i++) {
-            // ... (Giữ nguyên code vẽ ống cũ) ...
-            let p = pipes[i];
-            ctx.fillRect(p.x, 0, pipeWidth, p.y);
-            ctx.fillRect(p.x, p.y + pipeGap, pipeWidth, canvas.height - p.y - pipeGap);
-        }
-
-        // Vẽ Điểm
-        ctx.textAlign = "start";
-        ctx.fillStyle = "white";
-        ctx.font = "20px Arial";
-        ctx.fillText("Score: " + score, 10, 30);
-        
-        // Vẽ thời gian
-        ctx.textAlign = "start";
-        ctx.fillStyle = "white";
-        ctx.font = "bold 20px Arial";
-        ctx.fillText("Time: " + realTime + "s", 10, 50);
-
-        // [MỚI] Vẽ dòng chữ hướng dẫn tạm dừng ngay dưới Score
-        if (!isGameOver && isGameStarted && !isPaused) {
-            ctx.font = "italic 14px Arial";
-            ctx.fillText("Nhấn SPACE để tạm dừng", 10, 70); 
-        }
-
-        // (MỚI) Vẽ màn hình Chờ bắt đầu
-        if (!isGameStarted) {
-            ctx.fillStyle = "rgba(0, 0, 0, 0.5)"; // Lớp mờ đen
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            ctx.fillStyle = "white";
-            ctx.font = "20px Arial";
-            ctx.fillText("Nhấn SPACE để bắt đầu", 55, 240);
-        }
-
-        // [MỚI] Màn hình Tạm dừng
-        if (isPaused && !isGameOver) {
-            ctx.fillStyle = "rgba(0, 0, 0, 0.4)"; // Lớp phủ mờ nhẹ
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            ctx.textAlign = "center";
-            ctx.fillStyle = "white";
-            ctx.font = "bold 30px Arial";
-            ctx.fillText("ĐÃ TẠM DỪNG", canvas.width / 2, canvas.height / 2 - 20);
-            
-            ctx.font = "20px Arial";
-            ctx.fillText("Nhấn SPACE để chơi tiếp", canvas.width / 2, canvas.height / 2 + 30);
-        }
-
-        // Vẽ màn hình Game Over
         if (isGameOver) {
-            // 1. Logic cập nhật kỷ lục (Giữ nguyên)
             if (score > bestScore) {
                 bestScore = score;
                 localStorage.setItem("myFlappy_BestScore", bestScore);
             }
-
-            // 2. Vẽ lớp phủ: Dùng màu đen nhưng trong suốt hơn (0.5) 
-            // để vẫn nhìn thấy xác chim và ống bên dưới ("Giữ nguyên màn hình")
-            ctx.fillStyle = "rgba(0, 0, 0, 0.5)"; 
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            ctx.textAlign = "center"; 
-
-            // Tiêu đề
-            ctx.fillStyle = "white";
-            ctx.font = "bold 40px Arial";
-            ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 50);
-
-            // Điểm số
-            ctx.font = "20px Arial";
-            ctx.fillText("Điểm: " + score + " | Kỷ lục: " + bestScore, canvas.width / 2, canvas.height / 2);
-
-            // Hướng dẫn 1: Chơi lại (ĐÃ SỬA)
-            ctx.fillStyle = "#7FFF00"; 
-            ctx.font = "italic 18px Arial";
-            // Sử dụng ký hiệu ➡ (Bạn có thể copy ký hiệu này nếu bàn phím không gõ được)
-            ctx.fillText("Nhấn SPACE để chơi lại ngay", canvas.width / 2, canvas.height / 2 + 50);
-
-            // Hướng dẫn 2: Thoát (MỚI)
-            ctx.fillStyle = "#FF6347"; // Màu đỏ cà chua cho nút Thoát
-            ctx.font = "italic 18px Arial";
-            ctx.fillText("✖ Nhấn ENTER để thoát", canvas.width / 2, canvas.height / 2 + 80);
-
-            ctx.textAlign = "start"; // Trả lại căn lề
-        }}
-
-    // Hàm Reset: Nhận vào tham số 'playNow' (Chơi luôn hay không?)
-    function resetGame(playnow) {
-        birdY = 150;
-        birdX = 20;
-        velocity = 0;
-        pipes = [];
-        score = 0;
-        frame = 0;
-        realTime = 0;
-        // [MỚI] Trả tốc độ về mặc định ban đầu
-        pipeSpeed = 1.5;
-        isGameOver = false;
-        
-        // Nếu playNow là true -> Chơi luôn (isGameStarted = true)
-        // Nếu playNow là false -> Về màn hình chờ (isGameStarted = false)
-        isGameStarted = playnow; 
+            startBtn.style.display = "block";
+            startBtn.innerText = "RETRY";
+        }
     }
 
-    // Bắt đầu vòng lặp
+    // 5. VẼ
+    function draw() {
+        ctx.fillStyle = "#70c5ce";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Vẽ mây & bụi cây (giản lược)
+        ctx.fillStyle = "white";
+        ctx.beginPath(); ctx.arc(cloudX, 50, 20, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = "#2E8B57";
+        ctx.fillRect(bushX, canvas.height - 20, 50, 20);
+
+        // Vẽ Ống
+        ctx.fillStyle = "#2ecc71";
+        pipes.forEach(p => {
+            ctx.fillRect(p.x, 0, pipeWidth, p.y);
+            ctx.fillRect(p.x, p.y + pipeGap, pipeWidth, canvas.height);
+        });
+
+        // Vẽ Bướm (Đơn giản hóa cho hiệu năng mobile)
+        ctx.fillStyle = "#FF1493";
+        let wing = Math.sin(frame * 0.2) * 10;
+        ctx.fillRect(birdX - 5, birdY + wing, 10, 10); // Cánh trái
+        ctx.fillRect(birdX + 15, birdY + wing, 10, 10); // Cánh phải
+        ctx.fillStyle = "#4B0082";
+        ctx.fillRect(birdX, birdY, birdSize, birdSize); // Thân
+
+        // UI
+        ctx.fillStyle = "white";
+        ctx.font = "bold 20px Arial";
+        ctx.fillText(`Score: ${score}  Time: ${realTime}s`, 20, 30);
+
+        if (isPaused) {
+            ctx.fillStyle = "rgba(0,0,0,0.5)";
+            ctx.fillRect(0,0,canvas.width, canvas.height);
+            ctx.textAlign = "center";
+            ctx.fillText("PAUSED", canvas.width/2, canvas.height/2);
+            ctx.textAlign = "left";
+        }
+
+        if (isGameOver) {
+            ctx.fillStyle = "rgba(0,0,0,0.7)";
+            ctx.fillRect(0,0,canvas.width, canvas.height);
+            ctx.textAlign = "center";
+            ctx.fillStyle = "white";
+            ctx.fillText("GAME OVER", canvas.width/2, canvas.height/2 - 20);
+            ctx.fillText(`Best: ${bestScore}`, canvas.width/2, canvas.height/2 + 20);
+            ctx.textAlign = "left";
+        }
+    }
+
+    function resetGame(playnow) {
+        birdX = 50; birdY = 150; pipes = []; score = 0; 
+        frame = 0; realTime = 0; pipeSpeed = 2;
+        isGameOver = false; isGameStarted = playnow;
+    }
+
+    function gameLoop() {
+        update();
+        draw();
+        requestAnimationFrame(gameLoop);
+    }
     gameLoop();
-
 </script>
-
 </body>
 </html>
