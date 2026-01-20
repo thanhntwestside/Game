@@ -14,6 +14,7 @@
             align-items: center;
             height: 100vh;
             margin: 0;
+            overflow: hidden;
         }
         /* Mặc định cho máy tính */
     canvas {
@@ -24,7 +25,7 @@
     
     /* Cố định kích thước trên trình duyệt máy tính */
     width: 530px;
-    height: 350px;
+    height: 300px;
     }
 
     /* KHI MỞ TRÊN ĐIỆN THOẠI (Màn hình nhỏ hơn 768px) */
@@ -34,12 +35,43 @@
         height: 100vh;
         border: none; /* Bỏ viền để nhìn cho tràn viền */
     }
+    /* Hiện thông báo nếu người dùng để điện thoại đứng */
+    @media (max-width: 768px) and (orientation: portrait) {
+        body::after {
+        content: "Vui lòng xoay ngang điện thoại để chơi game!";
+        position: fixed;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: #333; color: white;
+        display: flex; align-items: center; justify-content: center;
+        z-index: 9999;
+        }
+    }
+    }
+    #pauseBtn {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.5);
+    border: 2px solid #fff;
+    border-radius: 5px;
+    font-weight: bold;
+    display: none; /* Mặc định ẩn */
+    z-index: 100;
+    }
+
+    /* Chỉ hiển thị nút P khi ở màn hình điện thoại */
+    @media (max-width: 768px) {
+        #pauseBtn {
+        display: block;
+        }
     }
     </style>
 </head>
 <body>
 <canvas id="gameCanvas"></canvas>
-
+<button id="pauseBtn" onclick="togglePause()">P</button>
 <script>
     // 1. LẤY CÔNG CỤ VẼ
     const canvas = document.getElementById("gameCanvas");
@@ -119,6 +151,9 @@ if (window.innerWidth > 768) {
                 isPaused = !isPaused;
             }
         }
+        if (event.code === "KeyP") {
+            togglePause();
+        }
         if (event.code === "Enter" && isGameOver) resetGame(false);
     });
 
@@ -126,6 +161,20 @@ if (window.innerWidth > 768) {
     document.addEventListener("keyup", function(event) {
         keys[event.code] = false;
     });
+    document.addEventListener('touchstart', function(e) {
+    // Lấy tọa độ chạm để xử lý swipe (giữ nguyên code cũ của bạn)
+    touchStartX = e.changedTouches[0].screenX;
+    touchStartY = e.changedTouches[0].screenY;
+
+    // LOGIC MỚI:
+    if (!isGameStarted) {
+        isGameStarted = true; // Chạm lần đầu để vào game
+    } else if (isGameOver) {
+        resetGame(true);      // Chạm khi thua để chơi lại
+    } else if (isPaused) {
+        isPaused = false;     // Chạm khi đang tạm dừng để chơi tiếp
+    }
+    }, {passive: false});
 
     // 4. VÒNG LẶP GAME
     function gameLoop() {
@@ -135,7 +184,12 @@ if (window.innerWidth > 768) {
     draw();
     requestAnimationFrame(gameLoop);
     }
-    
+    function togglePause() {
+    if (isGameStarted && !isGameOver) {
+        isPaused = !isPaused;
+    }
+    }
+
     // 5. HÀM TÍNH TOÁN (LOGIC)
     function update() {
         // (MỚI) Nếu game chưa bắt đầu hoặc đã thua, dừng tính toán vật lý
@@ -143,15 +197,14 @@ if (window.innerWidth > 768) {
         if (!isGameStarted || isGameOver || isPaused) {
             return; 
         }
-        if (!isGameStarted || isGameOver || isPaused) return; 
-
+        
     frame++; // Tăng biến đếm mỗi khung hình
 
     // CỨ MỖI 60 KHUNG HÌNH THÌ TĂNG 1 GIÂY THỰC
     if (frame % 60 === 0) {
         realTime++;
     }
-        
+            
         // --- Xử lý Cảnh vật (Mây & Cây) ---
         // 1. Mây bay chậm (Tốc độ 0.5)
         cloudX -= 0.5; 
